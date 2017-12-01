@@ -61,9 +61,10 @@ func (client *Client) StartEventStream(ctx context.Context, opts ...grpc.CallOpt
 }
 
 //GetGRPCConnection returns a new grpc connection
-func GetGRPCConnection(gothamHost string) (conn *grpc.ClientConn, err error) {
-	if conn, err = grpc.Dial(gothamHost, grpc.WithInsecure()); err != nil {
-		return nil, fmt.Errorf("failed to dial %q: %v", gothamHost, err)
+func GetGRPCConnection(host string) (conn *grpc.ClientConn, err error) {
+	log.Debugf("trying to dial %s", host)
+	if conn, err = grpc.Dial(host, grpc.WithInsecure()); err != nil {
+		return nil, fmt.Errorf("failed to dial %q: %v", host, err)
 	}
 	return conn, nil
 }
