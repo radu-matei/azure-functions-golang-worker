@@ -25,7 +25,8 @@ func handleWorkerInitRequest(requestID string,
 	client *Client,
 	eventStream rpc.FunctionRpc_EventStreamClient) {
 
-	log.Debugf("received worker init request with host version %s ", message.WorkerInitRequest.HostVersion)
+	log.Debugf("received worker init request with host version %s ",
+		message.WorkerInitRequest.HostVersion)
 
 	workerInitResponse := &rpc.StreamingMessage{
 		RequestId: requestID,
@@ -50,7 +51,9 @@ func handleFunctionLoadRequest(requestID string,
 	eventStream rpc.FunctionRpc_EventStreamClient) {
 
 	functionMap[message.FunctionLoadRequest.FunctionId] = message.FunctionLoadRequest.Metadata
-	log.Debugf("added function to map: %s, %s", message.FunctionLoadRequest.FunctionId, functionMap[message.FunctionLoadRequest.FunctionId])
+	log.Debugf("added function to map: %s, %v",
+		message.FunctionLoadRequest.FunctionId,
+		functionMap[message.FunctionLoadRequest.FunctionId])
 
 	functionLoadResponse := &rpc.StreamingMessage{
 		RequestId: requestID,
