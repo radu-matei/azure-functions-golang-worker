@@ -3,7 +3,7 @@ target = go
 protoc_location = ../azure-webjobs-sdk-script/src/WebJobs.Script.Grpc/Proto
 proto_out_dir = rpc/
 
-OUTPUT_DIR = bin
+OUTPUT_DIR = sample
 GOLANG_WORKER_BINARY = golang-worker
 
 .PHONY: rpc
