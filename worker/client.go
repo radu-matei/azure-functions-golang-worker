@@ -26,7 +26,8 @@ type Client struct {
 
 // NewClient returns a new instance of Client
 func NewClient(cfg *ClientConfig, conn *grpc.ClientConn) *Client {
-	log.Debugf("executing NewClient with config: host %s:%d, worker id %s, request id %s", cfg.Host, cfg.Port, cfg.WorkerID, cfg.RequestID)
+	log.Debugf("executing NewClient with config: host %s:%d, worker id %s, request id %s",
+		cfg.Host, cfg.Port, cfg.WorkerID, cfg.RequestID)
 
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithInsecure())

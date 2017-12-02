@@ -20,7 +20,11 @@ func handleStreamingMessage(message *rpc.StreamingMessage, client *Client, event
 	}
 }
 
-func handleWorkerInitRequest(requestID string, message *rpc.StreamingMessage_WorkerInitRequest, client *Client, eventStream rpc.FunctionRpc_EventStreamClient) {
+func handleWorkerInitRequest(requestID string,
+	message *rpc.StreamingMessage_WorkerInitRequest,
+	client *Client,
+	eventStream rpc.FunctionRpc_EventStreamClient) {
+
 	log.Debugf("received worker init request with host version %s ", message.WorkerInitRequest.HostVersion)
 
 	workerInitResponse := &rpc.StreamingMessage{
@@ -40,7 +44,11 @@ func handleWorkerInitRequest(requestID string, message *rpc.StreamingMessage_Wor
 	log.Debugf("sent start worker init response : %v", workerInitResponse)
 }
 
-func handleFunctionLoadRequest(requestID string, message *rpc.StreamingMessage_FunctionLoadRequest, client *Client, eventStream rpc.FunctionRpc_EventStreamClient) {
+func handleFunctionLoadRequest(requestID string,
+	message *rpc.StreamingMessage_FunctionLoadRequest,
+	client *Client,
+	eventStream rpc.FunctionRpc_EventStreamClient) {
+
 	functionMap[message.FunctionLoadRequest.FunctionId] = message.FunctionLoadRequest.Metadata
 	log.Debugf("added function to map: %s, %s", message.FunctionLoadRequest.FunctionId, functionMap[message.FunctionLoadRequest.FunctionId])
 
