@@ -59,6 +59,7 @@ func (client *Client) StartEventStream(ctx context.Context, opts ...grpc.CallOpt
 			}
 
 			log.Debugf("received message: %v", message)
+			handleStreamingMessage(message)
 		}
 	}()
 
