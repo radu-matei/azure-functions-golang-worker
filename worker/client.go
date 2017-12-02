@@ -12,7 +12,10 @@ import (
 
 // ClientConfig contains all necessary configuration to connect to the Azure Functions Host
 type ClientConfig struct {
-	Host string
+	Host      string
+	Port      int
+	WorkerID  string
+	RequestID string
 }
 
 // Client that listens for events from the Azure Functions host and executes Golang methods
@@ -23,7 +26,7 @@ type Client struct {
 
 // NewClient returns a new instance of Client
 func NewClient(cfg *ClientConfig, conn *grpc.ClientConn) *Client {
-	log.Debugf("executing NewClient with config: host %s", cfg.Host)
+	log.Debugf("executing NewClient with config: host %s:%d, worker id %s, request id %s", cfg.Host, cfg.Port, cfg.WorkerID, cfg.RequestID)
 
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithInsecure())
@@ -35,29 +38,46 @@ func NewClient(cfg *ClientConfig, conn *grpc.ClientConn) *Client {
 }
 
 // StartEventStream starts listening for messages from the Azure Functions Host
-func (client *Client) StartEventStream(ctx context.Context, opts ...grpc.CallOption) error {
+func (client *Client) StartEventStream(ctx context.Context, opts ...grpc.CallOption) {
 	log.Debugf("starting event stream..")
 
 	eventStream, err := client.RPC.EventStream(ctx)
 	if err != nil {
 		log.Fatalf("Cannot get event stream: %v", err)
-		return err
 	}
 
-	for {
-		message, err := eventStream.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatalf("error receiving stream: %v", err)
-			return err
-		}
+	waitc := make(chan struct{})
+	go func() {
+		for {
+			message, err := eventStream.Recv()
+			if err == io.EOF {
+				close(waitc)
+				return
+			}
+			if err != nil {
+				log.Fatalf("error receiving stream: %v", err)
+			}
 
-		log.Debugf("received message: %s", message.Content)
+			log.Debugf("received message: %v", message)
+		}
+	}()
+
+	startStreamingMessage := &rpc.StreamingMessage{
+		RequestId: client.Cfg.RequestID,
+		Content: &rpc.StreamingMessage_StartStream{
+			StartStream: &rpc.StartStream{
+				WorkerId: client.Cfg.WorkerID,
+			},
+		},
 	}
 
-	return nil
+	if err := eventStream.Send(startStreamingMessage); err != nil {
+		log.Fatalf("Failed to send start streaming request: %v", err)
+	}
+	log.Debugf("sent start streaming message to host")
+
+	<-waitc
+
 }
 
 //GetGRPCConnection returns a new grpc connection

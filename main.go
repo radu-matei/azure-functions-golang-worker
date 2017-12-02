@@ -43,7 +43,10 @@ func main() {
 	log.Debugf("started grpc connection...")
 
 	cfg := &worker.ClientConfig{
-		Host: host,
+		Host:      host,
+		Port:      port,
+		WorkerID:  workerID,
+		RequestID: requestID,
 	}
 	client := worker.NewClient(cfg, conn)
 	client.StartEventStream(context.Background())
