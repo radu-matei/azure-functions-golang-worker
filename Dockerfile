@@ -15,3 +15,4 @@ COPY --from=builder /go/src/github.com/radu-matei/azure-functions-golang-worker/
 COPY --from=builder /go/src/github.com/radu-matei/azure-functions-golang-worker/sample/ /home/site/wwwroot
 
 ENV AzureWebJobsScriptRoot=/home/site/wwwroot
+ENV ASPNETCORE_URLS=http://+:80
