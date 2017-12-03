@@ -1,18 +1,18 @@
 package main
 
 import (
+	"fmt"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/radu-matei/azure-functions-golang-worker/rpc"
 )
 
 // Run is the entrypoint to our Go Azure Function - if you want to change it, see function.json
-func Run(request *rpc.RpcHttp) {
+func Run(request *rpc.RpcHttp) string {
 	log.SetLevel(log.DebugLevel)
 
-	log.Debugf("Hello, %s", request.Query["name"])
-}
+	msg := fmt.Sprintf("Hello, %s", request.Query["name"])
+	log.Debugf(msg)
 
-func main() {
-	// this will be built using -buildmode=pluign, so there is no need for main
-	// only here to silence VSCode errors - don't use, will be removed
+	return msg
 }
