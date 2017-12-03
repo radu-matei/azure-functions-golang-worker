@@ -28,7 +28,7 @@ func handleWorkerInitRequest(requestID string,
 	client *Client,
 	eventStream rpc.FunctionRpc_EventStreamClient) {
 
-	log.Debugf("received worker init request with host version %s ",
+	log.Debugf("received worker init request with host version %s",
 		message.WorkerInitRequest.HostVersion)
 
 	workerInitResponse := &rpc.StreamingMessage{
@@ -43,9 +43,9 @@ func handleWorkerInitRequest(requestID string,
 	}
 
 	if err := eventStream.Send(workerInitResponse); err != nil {
-		log.Fatalf("Failed to send worker init response: %v", err)
+		log.Fatalf("failed to send worker init response: %v", err)
 	}
-	log.Debugf("sent start worker init response : %v", workerInitResponse)
+	log.Debugf("sent start worker init response: %v", workerInitResponse)
 }
 
 func handleFunctionLoadRequest(requestID string,
@@ -74,7 +74,7 @@ func handleFunctionLoadRequest(requestID string,
 	}
 
 	if err := eventStream.Send(functionLoadResponse); err != nil {
-		log.Fatalf("Failed to send function load response: %v", err)
+		log.Fatalf("failed to send function load response: %v", err)
 	}
 	log.Debugf("sent function load response: %v", functionLoadResponse)
 }

@@ -5,7 +5,6 @@ import (
 	"plugin"
 
 	log "github.com/Sirupsen/logrus"
-
 	"github.com/radu-matei/azure-functions-golang-worker/rpc"
 )
 
@@ -27,9 +26,9 @@ func LoadMethod(request *rpc.FunctionLoadRequest) error {
 	if err != nil {
 		log.Debugf("cannot look up symbol for entrypoint function %s: %v", request.Metadata.EntryPoint, err)
 	}
-	f, ok := symbol.(func(*rpc.RpcHttp) string)
+	f, ok := symbol.(func(*rpc.RpcHttp) []byte)
 	if !ok {
-		log.Debug("function not of correct signature")
+		log.Debug("incorrect function signature")
 		return err
 	}
 
@@ -38,14 +37,16 @@ func LoadMethod(request *rpc.FunctionLoadRequest) error {
 	return nil
 }
 
-// ExecuteMethod takes an InvocationRequest and executes the method
+// ExecuteMethod takes an InvocationRequest and executes the function with corresponding function ID
 func ExecuteMethod(request *rpc.InvocationRequest) (response *rpc.InvocationResponse) {
-	var output string
+	var output []byte
 
 	switch r := request.TriggerMetadata["req"].Data.(type) {
 	case *rpc.TypedData_Http:
-		output = functionMap[request.FunctionId].(func(*rpc.RpcHttp) string)(r.Http)
+		output = functionMap[request.FunctionId].(func(*rpc.RpcHttp) []byte)(r.Http)
 	}
+
+	log.Debugf("received output: %v", output)
 
 	invocationResponse := &rpc.InvocationResponse{
 		InvocationId: request.InvocationId,
@@ -53,8 +54,8 @@ func ExecuteMethod(request *rpc.InvocationRequest) (response *rpc.InvocationResp
 			Status: rpc.StatusResult_Success,
 		},
 		ReturnValue: &rpc.TypedData{
-			Data: &rpc.TypedData_String_{
-				String_: output,
+			Data: &rpc.TypedData_Json{
+				Json: string(output),
 			},
 		},
 	}

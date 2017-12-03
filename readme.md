@@ -15,7 +15,9 @@ To build the the worker and sample you need to:
 - `docker build -t azure-functions-go-sample .` 
 - `docker run -p 81:80 -it azure-functions-go-sample`
 
-Then, if you go to `localhost:81/api/HttpTriggerGo`, your `Run` method from the sample should be executed - right now it does not take any arguments (will take HTTP Trigger and WebHooks very soon). 
+Then, if you go to `localhost:81/api/HttpTriggerGo`, your `Run` method from the sample should be executed.
+
+
 
 Disclaimer
 ----------

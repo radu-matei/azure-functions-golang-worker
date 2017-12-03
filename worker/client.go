@@ -44,7 +44,7 @@ func (client *Client) StartEventStream(ctx context.Context, opts ...grpc.CallOpt
 
 	eventStream, err := client.RPC.EventStream(ctx)
 	if err != nil {
-		log.Fatalf("Cannot get event stream: %v", err)
+		log.Fatalf("cannot get event stream: %v", err)
 	}
 
 	waitc := make(chan struct{})
@@ -73,7 +73,7 @@ func (client *Client) StartEventStream(ctx context.Context, opts ...grpc.CallOpt
 	}
 
 	if err := eventStream.Send(startStreamingMessage); err != nil {
-		log.Fatalf("Failed to send start streaming request: %v", err)
+		log.Fatalf("failed to send start streaming request: %v", err)
 	}
 	log.Debugf("sent start streaming message to host")
 
