@@ -13,7 +13,7 @@ var (
 	functionMap = make(map[string]interface{})
 )
 
-// LoadMethod takes a .so object from the function directory and loads it
+// LoadMethod takes a .so object from the function's bin directory and loads it
 func LoadMethod(request *rpc.FunctionLoadRequest) error {
 
 	path := fmt.Sprintf("%s/bin/%s.so", request.Metadata.Directory, request.Metadata.Name)
@@ -27,9 +27,9 @@ func LoadMethod(request *rpc.FunctionLoadRequest) error {
 	if err != nil {
 		log.Debugf("cannot look up symbol for entrypoint function %s: %v", request.Metadata.EntryPoint, err)
 	}
-	f, ok := symbol.(func())
+	f, ok := symbol.(func(*rpc.RpcHttp))
 	if !ok {
-		log.Debug("symbol not of desired type")
+		log.Debug("function not of correct signature")
 		return err
 	}
 
@@ -40,7 +40,10 @@ func LoadMethod(request *rpc.FunctionLoadRequest) error {
 
 // ExecuteMethod takes an InvocationRequest and executes the method
 func ExecuteMethod(request *rpc.InvocationRequest) (response *rpc.InvocationResponse) {
-	functionMap[request.FunctionId].(func())()
+	switch t := interface{}(request.TriggerMetadata).(type) {
+	case *rpc.RpcHttp:
+		functionMap[request.FunctionId].(func(*rpc.RpcHttp))(t)
+	}
 
 	return nil
 }
