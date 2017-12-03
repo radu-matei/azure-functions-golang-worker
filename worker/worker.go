@@ -6,10 +6,6 @@ import (
 	"github.com/radu-matei/azure-functions-golang-worker/rpc"
 )
 
-var (
-	functionMap = make(map[string]*rpc.RpcFunctionMetadata)
-)
-
 func handleStreamingMessage(message *rpc.StreamingMessage, client *Client, eventStream rpc.FunctionRpc_EventStreamClient) {
 	switch m := message.Content.(type) {
 
