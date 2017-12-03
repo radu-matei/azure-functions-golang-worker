@@ -1,7 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
-func main() {
+// Run is the entrypoint to our Go Azure Function
+func Run() {
 	fmt.Println("Hello, Azure Functions!")
 }
