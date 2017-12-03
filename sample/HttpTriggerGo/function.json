@@ -1,5 +1,4 @@
 {
-    "disabled": false,
     "entryPoint" : "Run",
     "bindings": [
       {
@@ -13,5 +12,6 @@
         "direction": "out",
         "name": "res"
       }
-    ]
+    ],
+    "disabled": false
   }
