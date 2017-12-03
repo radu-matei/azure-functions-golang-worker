@@ -2,6 +2,7 @@ package worker
 
 import (
 	log "github.com/Sirupsen/logrus"
+	"github.com/radu-matei/azure-functions-golang-worker/executor"
 	"github.com/radu-matei/azure-functions-golang-worker/rpc"
 )
 
@@ -17,6 +18,12 @@ func handleStreamingMessage(message *rpc.StreamingMessage, client *Client, event
 
 	case *rpc.StreamingMessage_FunctionLoadRequest:
 		handleFunctionLoadRequest(message.RequestId, m, client, eventStream)
+
+	case *rpc.StreamingMessage_InvocationRequest:
+		handleInvocationRequest(message.RequestId, m, client, eventStream)
+
+	default:
+		log.Debugf("received message: %v", message)
 	}
 }
 
@@ -50,10 +57,13 @@ func handleFunctionLoadRequest(requestID string,
 	client *Client,
 	eventStream rpc.FunctionRpc_EventStreamClient) {
 
-	functionMap[message.FunctionLoadRequest.FunctionId] = message.FunctionLoadRequest.Metadata
-	log.Debugf("added function to map: %s, %v",
-		message.FunctionLoadRequest.FunctionId,
-		functionMap[message.FunctionLoadRequest.FunctionId])
+	var status rpc.StatusResult_Status
+	err := executor.LoadMethod(message.FunctionLoadRequest)
+	if err != nil {
+		status = rpc.StatusResult_Failure
+	}
+
+	status = rpc.StatusResult_Success
 
 	functionLoadResponse := &rpc.StreamingMessage{
 		RequestId: requestID,
@@ -61,7 +71,7 @@ func handleFunctionLoadRequest(requestID string,
 			FunctionLoadResponse: &rpc.FunctionLoadResponse{
 				FunctionId: message.FunctionLoadRequest.FunctionId,
 				Result: &rpc.StatusResult{
-					Status: rpc.StatusResult_Success,
+					Status: status,
 				},
 			},
 		},
@@ -71,4 +81,13 @@ func handleFunctionLoadRequest(requestID string,
 		log.Fatalf("Failed to send function load response: %v", err)
 	}
 	log.Debugf("sent function load response: %v", functionLoadResponse)
+}
+
+func handleInvocationRequest(requestID string,
+	message *rpc.StreamingMessage_InvocationRequest,
+	client *Client,
+	eventStream rpc.FunctionRpc_EventStreamClient) {
+
+	log.Debugf("received invocation request: %v", message.InvocationRequest)
+	executor.ExecuteMethod(message.InvocationRequest)
 }
