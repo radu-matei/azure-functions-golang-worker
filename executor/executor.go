@@ -40,10 +40,10 @@ func LoadMethod(request *rpc.FunctionLoadRequest) error {
 
 // ExecuteMethod takes an InvocationRequest and executes the method
 func ExecuteMethod(request *rpc.InvocationRequest) (response *rpc.InvocationResponse) {
-	switch t := interface{}(request.TriggerMetadata).(type) {
-	case *rpc.RpcHttp:
-		functionMap[request.FunctionId].(func(*rpc.RpcHttp))(t)
-	}
 
+	switch r := request.TriggerMetadata["req"].Data.(type) {
+	case *rpc.TypedData_Http:
+		functionMap[request.FunctionId].(func(*rpc.RpcHttp))(r.Http)
+	}
 	return nil
 }

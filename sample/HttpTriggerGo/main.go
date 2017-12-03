@@ -8,8 +8,8 @@ import (
 // Run is the entrypoint to our Go Azure Function - if you want to change it, see function.json
 func Run(request *rpc.RpcHttp) {
 	log.SetLevel(log.DebugLevel)
-	log.Debugf("received function invocation request: %v", request)
 
+	log.Debugf("Hello, %s", request.Query["name"])
 }
 
 func main() {
