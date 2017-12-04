@@ -53,13 +53,13 @@ func handleFunctionLoadRequest(requestID string,
 	client *Client,
 	eventStream rpc.FunctionRpc_EventStreamClient) {
 
-	var status rpc.StatusResult_Status
+	status := rpc.StatusResult_Success
+
 	err := executor.LoadMethod(message.FunctionLoadRequest)
 	if err != nil {
 		status = rpc.StatusResult_Failure
+		log.Debugf("could not load function: %v", err)
 	}
-
-	status = rpc.StatusResult_Success
 
 	functionLoadResponse := &rpc.StreamingMessage{
 		RequestId: requestID,

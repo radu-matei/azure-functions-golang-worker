@@ -3,13 +3,17 @@ package executor
 import (
 	"fmt"
 	"plugin"
+	"reflect"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/radu-matei/azure-functions-golang-worker/rpc"
+	"github.com/radu-matei/azure-functions-golang-worker/runtime"
+	"github.com/radu-matei/azure-functions-golang-worker/util"
 )
 
 var (
 	functionMap = make(map[string]interface{})
+	http        *runtime.HTTPRequest
 )
 
 // LoadMethod takes a .so object from the function's bin directory and loads it
@@ -26,7 +30,20 @@ func LoadMethod(request *rpc.FunctionLoadRequest) error {
 	if err != nil {
 		log.Debugf("cannot look up symbol for entrypoint function %s: %v", request.Metadata.EntryPoint, err)
 	}
-	f, ok := symbol.(func(*rpc.RpcHttp) []byte)
+
+	t := reflect.TypeOf(symbol)
+	if t.Kind() != reflect.Func {
+		return fmt.Errorf("symbol is not func, but %v", t.Kind())
+	}
+
+	triggerType := t.In(0)
+	if triggerType != reflect.TypeOf(http) {
+		return fmt.Errorf("first argument not http request but %v", triggerType)
+	}
+
+	log.Debugf("entrypoint function type: %v, signature: %v", t.Kind(), t)
+
+	f, ok := symbol.(func(*runtime.HTTPRequest, *runtime.Context) []byte)
 	if !ok {
 		log.Debug("incorrect function signature")
 		return err
@@ -40,10 +57,14 @@ func LoadMethod(request *rpc.FunctionLoadRequest) error {
 // ExecuteMethod takes an InvocationRequest and executes the function with corresponding function ID
 func ExecuteMethod(request *rpc.InvocationRequest) (response *rpc.InvocationResponse) {
 	var output []byte
-
 	switch r := request.TriggerMetadata["req"].Data.(type) {
 	case *rpc.TypedData_Http:
-		output = functionMap[request.FunctionId].(func(*rpc.RpcHttp) []byte)(r.Http)
+		h := util.ConvertToHTTPRequest(r.Http)
+		ctx := &runtime.Context{
+			FunctionName: request.FunctionId,
+			InvocationID: request.InvocationId,
+		}
+		output = functionMap[request.FunctionId].(func(*runtime.HTTPRequest, *runtime.Context) []byte)(h, ctx)
 	}
 
 	log.Debugf("received output: %v", output)
