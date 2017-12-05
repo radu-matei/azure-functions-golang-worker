@@ -21,6 +21,10 @@ func ConvertToHTTPRequest(r *rpc.RpcHttp) *runtime.HTTPRequest {
 		IsRaw:      r.IsRaw,
 	}
 
+	if r.Body == nil {
+		return req
+	}
+
 	switch d := r.Body.Data.(type) {
 	case *rpc.TypedData_String_:
 		req.Body = ioutil.NopCloser(bytes.NewBufferString(d.String_))
