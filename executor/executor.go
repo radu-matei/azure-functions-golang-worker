@@ -61,7 +61,7 @@ func ExecuteMethod(request *rpc.InvocationRequest) (response *rpc.InvocationResp
 	case *rpc.TypedData_Http:
 		h := util.ConvertToHTTPRequest(r.Http)
 		ctx := &runtime.Context{
-			FunctionName: request.FunctionId,
+			FunctionID: request.FunctionId,
 			InvocationID: request.InvocationId,
 		}
 		output = functionMap[request.FunctionId].(func(*runtime.HTTPRequest, *runtime.Context) []byte)(h, ctx)
