@@ -13,23 +13,27 @@ import (
 func Run(request *runtime.HTTPRequest, ctx *runtime.Context) []byte {
 	log.SetLevel(log.DebugLevel)
 
+	log.Debugf("function id: %s, invocation id: %s", ctx.FunctionID, ctx.InvocationID)
+
 	u := User{
 		Name:          request.Query["name"],
 		GeneratedName: fmt.Sprintf("%s-azfunc", request.Query["name"]),
 	}
-
-	log.Debugf("user: %v", u)
-
-	hah, _ := ioutil.ReadAll(request.Body)
-	log.Debugf("request body: %v", string(hah))
 
 	b, err := json.Marshal(u)
 	if err != nil {
 		log.Debugf("failed to marshal, %v:", err)
 	}
 
-	return b
+	if request.Body != nil {
+		body, err := ioutil.ReadAll(request.Body)
+		if err != nil {
+			log.Debugf("cannot read body")
+		}
+		log.Debugf("request body: %v", string(body))
+	}
 
+	return b
 }
 
 type User struct {

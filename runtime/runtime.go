@@ -4,7 +4,7 @@ import "io"
 
 // Context contains the runtime context of the function
 type Context struct {
-	FunctionName string
+	FunctionID   string
 	InvocationID string
 }
 
