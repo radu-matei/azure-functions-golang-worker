@@ -4,14 +4,14 @@ import (
 	"bytes"
 	"io/ioutil"
 
+	"github.com/radu-matei/azure-functions-golang-worker/azfunc"
 	"github.com/radu-matei/azure-functions-golang-worker/rpc"
-	"github.com/radu-matei/azure-functions-golang-worker/runtime"
 )
 
 // ConvertToHTTPRequest returns a formatted HTTPRequest from an rpc.HttpTrigger
-func ConvertToHTTPRequest(r *rpc.RpcHttp) runtime.HTTPRequest {
+func ConvertToHTTPRequest(r *rpc.RpcHttp) azfunc.HTTPRequest {
 
-	req := runtime.HTTPRequest{
+	req := azfunc.HTTPRequest{
 		Method:     r.Method,
 		URL:        r.Url,
 		Headers:    r.Headers,

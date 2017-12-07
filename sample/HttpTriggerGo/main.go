@@ -4,11 +4,11 @@ import (
 	"fmt"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/radu-matei/azure-functions-golang-worker/runtime"
+	"github.com/radu-matei/azure-functions-golang-worker/azfunc"
 )
 
 // Run is the entrypoint to our Go Azure Function - if you want to change it, see function.json
-func Run(req runtime.HTTPRequest, ctx runtime.Context) User {
+func Run(req azfunc.HTTPRequest, ctx azfunc.Context) User {
 	log.SetLevel(log.DebugLevel)
 
 	log.Debugf("function id: %s, invocation id: %s", ctx.FunctionID, ctx.InvocationID)

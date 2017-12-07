@@ -7,14 +7,14 @@ import (
 	"reflect"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/radu-matei/azure-functions-golang-worker/azfunc"
 	"github.com/radu-matei/azure-functions-golang-worker/rpc"
-	"github.com/radu-matei/azure-functions-golang-worker/runtime"
 	"github.com/radu-matei/azure-functions-golang-worker/util"
 )
 
 var (
 	symbolMap = make(map[string]interface{})
-	http      runtime.HTTPRequest
+	http      azfunc.HTTPRequest
 	tt        reflect.Type
 )
 
@@ -59,7 +59,7 @@ func ExecuteMethod(request *rpc.InvocationRequest) (response *rpc.InvocationResp
 	switch r := request.TriggerMetadata["req"].Data.(type) {
 	case *rpc.TypedData_Http:
 		h := util.ConvertToHTTPRequest(r.Http)
-		ctx := runtime.Context{
+		ctx := azfunc.Context{
 			FunctionID:   request.FunctionId,
 			InvocationID: request.InvocationId,
 		}
