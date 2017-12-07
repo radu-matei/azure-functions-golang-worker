@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"encoding/json"
 	"fmt"
 	"plugin"
 	"reflect"
@@ -12,8 +13,9 @@ import (
 )
 
 var (
-	functionMap = make(map[string]interface{})
-	http        *runtime.HTTPRequest
+	symbolMap = make(map[string]interface{})
+	http      runtime.HTTPRequest
+	tt        reflect.Type
 )
 
 // LoadMethod takes a .so object from the function's bin directory and loads it
@@ -43,31 +45,39 @@ func LoadMethod(request *rpc.FunctionLoadRequest) error {
 
 	log.Debugf("entrypoint function type: %v, signature: %v", t.Kind(), t)
 
-	f, ok := symbol.(func(*runtime.HTTPRequest, *runtime.Context) []byte)
-	if !ok {
-		log.Debug("incorrect function signature")
-		return err
-	}
-
-	functionMap[request.FunctionId] = f
+	symbolMap[request.FunctionId] = symbol
 
 	return nil
 }
 
 // ExecuteMethod takes an InvocationRequest and executes the function with corresponding function ID
 func ExecuteMethod(request *rpc.InvocationRequest) (response *rpc.InvocationResponse) {
-	var output []byte
+
+	tt := reflect.TypeOf(symbolMap[request.FunctionId]).Out(0)
+	var output = reflect.New(tt)
+
 	switch r := request.TriggerMetadata["req"].Data.(type) {
 	case *rpc.TypedData_Http:
 		h := util.ConvertToHTTPRequest(r.Http)
-		ctx := &runtime.Context{
-			FunctionID: request.FunctionId,
+		ctx := runtime.Context{
+			FunctionID:   request.FunctionId,
 			InvocationID: request.InvocationId,
 		}
-		output = functionMap[request.FunctionId].(func(*runtime.HTTPRequest, *runtime.Context) []byte)(h, ctx)
+
+		f := reflect.ValueOf(symbolMap[request.FunctionId])
+
+		y := f.Call([]reflect.Value{reflect.ValueOf(h), reflect.ValueOf(ctx)})
+		log.Debugf("Function output types: %v", y)
+		output = y[0]
+	}
+
+	b, err := json.Marshal(output.Interface())
+	if err != nil {
+		log.Debugf("failed to marshal, %v:", err)
 	}
 
 	log.Debugf("received output: %v", output)
+	log.Debugf("encoded output: %v", string(b))
 
 	invocationResponse := &rpc.InvocationResponse{
 		InvocationId: request.InvocationId,
@@ -76,7 +86,7 @@ func ExecuteMethod(request *rpc.InvocationRequest) (response *rpc.InvocationResp
 		},
 		ReturnValue: &rpc.TypedData{
 			Data: &rpc.TypedData_Json{
-				Json: string(output),
+				Json: string(b),
 			},
 		},
 	}
