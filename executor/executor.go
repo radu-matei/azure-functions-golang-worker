@@ -14,12 +14,11 @@ import (
 
 var (
 	funcMap = make(map[string]*AzFunc)
-	http    azfunc.HTTPRequest
 )
 
 // AzFunc contains a function symbol with in and out param types
 type AzFunc struct {
-	Func interface{}
+	Func reflect.Value
 	In   []reflect.Type
 	Out  []reflect.Type
 }
@@ -40,9 +39,13 @@ func LoadFunction(request *rpc.FunctionLoadRequest) error {
 
 // ExecuteFunction takes an InvocationRequest and executes the function with corresponding function ID
 func ExecuteFunction(request *rpc.InvocationRequest) (response *rpc.InvocationResponse) {
+	var output reflect.Value
 
-	tt := reflect.TypeOf(funcMap[request.FunctionId].Out[0])
-	var output = reflect.New(tt)
+	s := len(funcMap[request.FunctionId].Out)
+	out := make([]reflect.Value, s)
+	for i := 0; i < s; i++ {
+		out[i] = reflect.New(funcMap[request.FunctionId].Out[i])
+	}
 
 	switch r := request.TriggerMetadata["req"].Data.(type) {
 	case *rpc.TypedData_Http:
@@ -52,11 +55,8 @@ func ExecuteFunction(request *rpc.InvocationRequest) (response *rpc.InvocationRe
 			InvocationID: request.InvocationId,
 		}
 
-		f := reflect.ValueOf(funcMap[request.FunctionId].Func)
-
-		y := f.Call([]reflect.Value{reflect.ValueOf(h), reflect.ValueOf(ctx)})
-		log.Debugf("Function output types: %v", y)
-		output = y[0]
+		out = funcMap[request.FunctionId].Func.Call([]reflect.Value{reflect.ValueOf(h), reflect.ValueOf(ctx)})
+		output = out[0]
 	}
 
 	b, err := json.Marshal(output.Interface())
@@ -112,13 +112,8 @@ func load(request *rpc.FunctionLoadRequest) (*AzFunc, error) {
 		out[i] = t.Out(i)
 	}
 
-	triggerType := t.In(0)
-	if triggerType != reflect.TypeOf(http) {
-		return nil, fmt.Errorf("first argument not http request but %v", triggerType)
-	}
-
 	return &AzFunc{
-		Func: symbol,
+		Func: reflect.ValueOf(symbol),
 		In:   in,
 		Out:  out,
 	}, nil
