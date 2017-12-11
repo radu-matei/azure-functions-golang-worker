@@ -13,47 +13,35 @@ import (
 )
 
 var (
-	symbolMap = make(map[string]interface{})
-	http      azfunc.HTTPRequest
-	tt        reflect.Type
+	funcMap = make(map[string]*AzFunc)
+	http    azfunc.HTTPRequest
 )
 
-// LoadMethod takes a .so object from the function's bin directory and loads it
-func LoadMethod(request *rpc.FunctionLoadRequest) error {
+// AzFunc contains a function symbol with in and out param types
+type AzFunc struct {
+	Func interface{}
+	In   []reflect.Type
+	Out  []reflect.Type
+}
 
-	path := fmt.Sprintf("%s/bin/%s.so", request.Metadata.Directory, request.Metadata.Name)
-	plugin, err := plugin.Open(path)
+// LoadFunction takes a .so object from the function's bin directory and loads it
+func LoadFunction(request *rpc.FunctionLoadRequest) error {
+
+	az, err := load(request)
 	if err != nil {
-		log.Debugf("cannot get .so object from path %s: %v", path, err)
-		return err
+		log.Debugf("cannot get function: %v", err)
 	}
 
-	symbol, err := plugin.Lookup(request.Metadata.EntryPoint)
-	if err != nil {
-		log.Debugf("cannot look up symbol for entrypoint function %s: %v", request.Metadata.EntryPoint, err)
-	}
-
-	t := reflect.TypeOf(symbol)
-	if t.Kind() != reflect.Func {
-		return fmt.Errorf("symbol is not func, but %v", t.Kind())
-	}
-
-	triggerType := t.In(0)
-	if triggerType != reflect.TypeOf(http) {
-		return fmt.Errorf("first argument not http request but %v", triggerType)
-	}
-
-	log.Debugf("entrypoint function type: %v, signature: %v", t.Kind(), t)
-
-	symbolMap[request.FunctionId] = symbol
+	funcMap[request.FunctionId] = az
+	log.Debugf("function: %v, in: %v, out: %v", reflect.TypeOf(funcMap[request.FunctionId].Func), funcMap[request.FunctionId].In, funcMap[request.FunctionId].Out)
 
 	return nil
 }
 
-// ExecuteMethod takes an InvocationRequest and executes the function with corresponding function ID
-func ExecuteMethod(request *rpc.InvocationRequest) (response *rpc.InvocationResponse) {
+// ExecuteFunction takes an InvocationRequest and executes the function with corresponding function ID
+func ExecuteFunction(request *rpc.InvocationRequest) (response *rpc.InvocationResponse) {
 
-	tt := reflect.TypeOf(symbolMap[request.FunctionId]).Out(0)
+	tt := reflect.TypeOf(funcMap[request.FunctionId].Out[0])
 	var output = reflect.New(tt)
 
 	switch r := request.TriggerMetadata["req"].Data.(type) {
@@ -64,7 +52,7 @@ func ExecuteMethod(request *rpc.InvocationRequest) (response *rpc.InvocationResp
 			InvocationID: request.InvocationId,
 		}
 
-		f := reflect.ValueOf(symbolMap[request.FunctionId])
+		f := reflect.ValueOf(funcMap[request.FunctionId].Func)
 
 		y := f.Call([]reflect.Value{reflect.ValueOf(h), reflect.ValueOf(ctx)})
 		log.Debugf("Function output types: %v", y)
@@ -92,4 +80,46 @@ func ExecuteMethod(request *rpc.InvocationRequest) (response *rpc.InvocationResp
 	}
 
 	return invocationResponse
+}
+
+func load(request *rpc.FunctionLoadRequest) (*AzFunc, error) {
+	log.Debugf("load function request: %v", request)
+
+	path := fmt.Sprintf("%s/bin/%s.so", request.Metadata.Directory, request.Metadata.Name)
+	plugin, err := plugin.Open(path)
+	if err != nil {
+		log.Debugf("cannot get .so object from path %s: %v", path, err)
+		return nil, err
+	}
+
+	symbol, err := plugin.Lookup(request.Metadata.EntryPoint)
+	if err != nil {
+		log.Debugf("cannot look up symbol for entrypoint function %s: %v", request.Metadata.EntryPoint, err)
+	}
+
+	t := reflect.TypeOf(symbol)
+	if t.Kind() != reflect.Func {
+		return nil, fmt.Errorf("symbol is not func, but %v", t.Kind())
+	}
+
+	in := make([]reflect.Type, t.NumIn())
+	for i := 0; i < t.NumIn(); i++ {
+		in[i] = t.In(i)
+	}
+
+	out := make([]reflect.Type, t.NumOut())
+	for i := 0; i < t.NumOut(); i++ {
+		out[i] = t.Out(i)
+	}
+
+	triggerType := t.In(0)
+	if triggerType != reflect.TypeOf(http) {
+		return nil, fmt.Errorf("first argument not http request but %v", triggerType)
+	}
+
+	return &AzFunc{
+		Func: symbol,
+		In:   in,
+		Out:  out,
+	}, nil
 }
