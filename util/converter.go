@@ -9,9 +9,9 @@ import (
 )
 
 // ConvertToHTTPRequest returns a formatted HTTPRequest from an rpc.HttpTrigger
-func ConvertToHTTPRequest(r *rpc.RpcHttp) azfunc.HTTPRequest {
+func ConvertToHTTPRequest(r *rpc.RpcHttp) *azfunc.HTTPRequest {
 
-	req := azfunc.HTTPRequest{
+	req := &azfunc.HTTPRequest{
 		Method:     r.Method,
 		URL:        r.Url,
 		Headers:    r.Headers,
