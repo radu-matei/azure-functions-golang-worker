@@ -1,4 +1,5 @@
-FROM golang as builder
+FROM golang:1.10-rc as builder
+#FROM golang as builder
 
 WORKDIR /go/src/github.com/radu-matei/azure-functions-golang-worker
 COPY . .
@@ -12,6 +13,8 @@ RUN go build -o golang-worker
 WORKDIR /go/src/github.com/radu-matei/azure-functions-golang-worker/sample/HttpTriggerGo
 RUN go build -buildmode=plugin -o bin/HttpTriggerGo.so main.go
 
+#WORKDIR /go/src/github.com/radu-matei/azure-functions-golang-worker/sample/BlobTriggerGo
+#RUN go build -buildmode=plugin -o bin/BlobTriggerGo.so main.go
 
 FROM radumatei/functions-runtime:golang
 
