@@ -3,60 +3,37 @@ package executor
 import (
 	"encoding/json"
 	"fmt"
-	"plugin"
 	"reflect"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/radu-matei/azure-functions-golang-worker/azfunc"
+	"github.com/radu-matei/azure-functions-golang-worker/loader"
 	"github.com/radu-matei/azure-functions-golang-worker/rpc"
 	"github.com/radu-matei/azure-functions-golang-worker/util"
 )
-
-var (
-	funcMap = make(map[string]*AzFunc)
-)
-
-// AzFunc contains a function symbol with in and out param types
-type AzFunc struct {
-	Func reflect.Value
-	In   []reflect.Type
-	Out  []reflect.Type
-}
-
-// LoadFunction takes a .so object from the function's bin directory and loads it
-func LoadFunction(request *rpc.FunctionLoadRequest) error {
-
-	az, err := load(request)
-	if err != nil {
-		log.Debugf("cannot get function: %v", err)
-	}
-
-	funcMap[request.FunctionId] = az
-	log.Debugf("function: %v, in: %v, out: %v", reflect.TypeOf(funcMap[request.FunctionId].Func), funcMap[request.FunctionId].In, funcMap[request.FunctionId].Out)
-
-	return nil
-}
 
 // ExecuteFunction takes an InvocationRequest and executes the function with corresponding function ID
 func ExecuteFunction(request *rpc.InvocationRequest) (response *rpc.InvocationResponse) {
 	var output reflect.Value
 
-	s := len(funcMap[request.FunctionId].Out)
+	s := len(loader.LoadedFuncs[request.FunctionId].Out)
 	out := make([]reflect.Value, s)
 	for i := 0; i < s; i++ {
-		out[i] = reflect.New(funcMap[request.FunctionId].Out[i])
+		out[i] = reflect.New(loader.LoadedFuncs[request.FunctionId].Out[i])
 	}
 
 	switch r := request.TriggerMetadata["req"].Data.(type) {
 	case *rpc.TypedData_Http:
 		h := util.ConvertToHTTPRequest(r.Http)
-		ctx := azfunc.Context{
+		ctx := &azfunc.Context{
 			FunctionID:   request.FunctionId,
 			InvocationID: request.InvocationId,
 		}
 
-		out = funcMap[request.FunctionId].Func.Call([]reflect.Value{reflect.ValueOf(h), reflect.ValueOf(ctx)})
+		out = loader.LoadedFuncs[request.FunctionId].Func.Call([]reflect.Value{reflect.ValueOf(h), reflect.ValueOf(ctx)})
 		output = out[0]
+
+		log.Debugf("http request: %v", h)
 	}
 
 	b, err := json.Marshal(output.Interface())
@@ -82,39 +59,18 @@ func ExecuteFunction(request *rpc.InvocationRequest) (response *rpc.InvocationRe
 	return invocationResponse
 }
 
-func load(request *rpc.FunctionLoadRequest) (*AzFunc, error) {
-	log.Debugf("load function request: %v", request)
-
-	path := fmt.Sprintf("%s/bin/%s.so", request.Metadata.Directory, request.Metadata.Name)
-	plugin, err := plugin.Open(path)
-	if err != nil {
-		log.Debugf("cannot get .so object from path %s: %v", path, err)
-		return nil, err
+// NewExecuteFunc is a new, improved version of ExecuteFunction
+func NewExecuteFunc(req *rpc.InvocationRequest) (response *rpc.InvocationResponse, err error) {
+	f, ok := loader.LoadedFuncs[req.FunctionId]
+	if !ok {
+		return nil, fmt.Errorf("function with functionID %v not loaded", req.FunctionId)
 	}
+	_ = paramsFromReq(req, f)
 
-	symbol, err := plugin.Lookup(request.Metadata.EntryPoint)
-	if err != nil {
-		log.Debugf("cannot look up symbol for entrypoint function %s: %v", request.Metadata.EntryPoint, err)
-	}
+	return nil, nil
+}
 
-	t := reflect.TypeOf(symbol)
-	if t.Kind() != reflect.Func {
-		return nil, fmt.Errorf("symbol is not func, but %v", t.Kind())
-	}
+func paramsFromReq(req *rpc.InvocationRequest, f *azfunc.Func) map[string]reflect.Value {
 
-	in := make([]reflect.Type, t.NumIn())
-	for i := 0; i < t.NumIn(); i++ {
-		in[i] = t.In(i)
-	}
-
-	out := make([]reflect.Type, t.NumOut())
-	for i := 0; i < t.NumOut(); i++ {
-		out[i] = t.Out(i)
-	}
-
-	return &AzFunc{
-		Func: reflect.ValueOf(symbol),
-		In:   in,
-		Out:  out,
-	}, nil
+	return nil
 }
