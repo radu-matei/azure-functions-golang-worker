@@ -8,7 +8,7 @@ import (
 )
 
 // Run is the entrypoint to our Go Azure Function - if you want to change it, see function.json
-func Run(req azfunc.HTTPRequest, ctx azfunc.Context) User {
+func Run(req *azfunc.HTTPRequest, ctx *azfunc.Context) User {
 	log.SetLevel(log.DebugLevel)
 
 	log.Debugf("function id: %s, invocation id: %s", ctx.FunctionID, ctx.InvocationID)
