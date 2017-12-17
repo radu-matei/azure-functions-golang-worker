@@ -55,7 +55,7 @@ func handleFunctionLoadRequest(requestID string,
 	eventStream rpc.FunctionRpc_EventStreamClient) {
 
 	status := rpc.StatusResult_Success
-	err := loader.LoadFunction(message.FunctionLoadRequest)
+	err := loader.LoadFunc(message.FunctionLoadRequest)
 	if err != nil {
 		status = rpc.StatusResult_Failure
 		log.Debugf("could not load function: %v", err)
@@ -84,8 +84,8 @@ func handleInvocationRequest(requestID string,
 	client *Client,
 	eventStream rpc.FunctionRpc_EventStreamClient) {
 
-	log.Debugf("received invocation request: %v", message.InvocationRequest)
-	response := executor.ExecuteFunction(message.InvocationRequest)
+	//log.Debugf("received invocation request: %v", message.InvocationRequest)
+	response := executor.ExecuteFunc(message.InvocationRequest)
 
 	invocationResponse := &rpc.StreamingMessage{
 		RequestId: requestID,

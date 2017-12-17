@@ -18,8 +18,8 @@ var (
 	LoadedFuncs = make(map[string]*azfunc.Func)
 )
 
-// LoadFunction populates information about the func from the compiled plugin and from parsing the source code
-func LoadFunction(req *rpc.FunctionLoadRequest) error {
+// LoadFunc populates information about the func from the compiled plugin and from parsing the source code
+func LoadFunc(req *rpc.FunctionLoadRequest) error {
 	log.Debugf("received function load request: %v", req)
 
 	f, err := loadSO(req.Metadata)
@@ -79,6 +79,7 @@ func loadSO(metadata *rpc.RpcFunctionMetadata) (*azfunc.Func, error) {
 }
 
 // can this be optimized?
+// can this be achieved only by relying on the parameter order?
 func parseEntrypoint(metadata *rpc.RpcFunctionMetadata) (map[string]reflect.Type, error) {
 	m := make(map[string]reflect.Type)
 
@@ -128,18 +129,4 @@ func parseEntrypoint(metadata *rpc.RpcFunctionMetadata) (map[string]reflect.Type
 	})
 
 	return m, nil
-}
-
-// checkBindingsInFunc verifies that all bindings from function.json
-// are present in the function signature
-func checkBindingsInFunc(f *azfunc.Func) bool {
-	for k := range f.Bindings {
-		_, ok := f.NamedInArgs[k]
-		if !ok {
-			log.Debugf("binding %s not present in function signature", k)
-			return false
-		}
-	}
-
-	return true
 }
