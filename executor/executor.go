@@ -30,11 +30,51 @@ func ExecuteFunc(req *rpc.InvocationRequest) (response *rpc.InvocationResponse) 
 
 	log.Debugf("params: %v", params)
 
-	output := f.Func.Call(params)[0]
+	output := f.Func.Call(params)
+	// see discussion here - https://github.com/radu-matei/azure-functions-golang-worker/issues/4
 
-	b, err := json.Marshal(output.Interface())
-	if err != nil {
-		log.Debugf("failed to marshal, %v:", err)
+	//var returnValue *rpc.TypedData
+	returnValue := &rpc.TypedData{}
+	switch len(output) {
+	case 1:
+		switch o := output[0].Interface().(type) {
+		case error:
+			if o != nil {
+				status = rpc.StatusResult_Failure
+			}
+
+		default:
+			b, err := json.Marshal(output[0].Interface())
+			if err != nil {
+				log.Debugf("failed to marshal, %v:", err)
+			}
+			returnValue = &rpc.TypedData{
+				Data: &rpc.TypedData_Json{
+					Json: string(b),
+				},
+			}
+		}
+
+	case 2:
+		switch o := output[1].Interface().(type) {
+		case error:
+			if o != nil {
+				status = rpc.StatusResult_Failure
+			}
+		default:
+			// TODO - maybe check this at function load?
+			log.Debugf("if there are return params, the second one should be the error...")
+		}
+		b, err := json.Marshal(output[0].Interface())
+		if err != nil {
+			log.Debugf("failed to marshal, %v:", err)
+		}
+
+		returnValue = &rpc.TypedData{
+			Data: &rpc.TypedData_Json{
+				Json: string(b),
+			},
+		}
 	}
 
 	return &rpc.InvocationResponse{
@@ -42,11 +82,7 @@ func ExecuteFunc(req *rpc.InvocationRequest) (response *rpc.InvocationResponse) 
 		Result: &rpc.StatusResult{
 			Status: status,
 		},
-		ReturnValue: &rpc.TypedData{
-			Data: &rpc.TypedData_Json{
-				Json: string(b),
-			},
-		},
+		ReturnValue: returnValue,
 	}
 }
 

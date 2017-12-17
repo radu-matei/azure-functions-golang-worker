@@ -8,7 +8,7 @@ import (
 )
 
 // Run is the entrypoint to our Go Azure Function - if you want to change it, see function.json
-func Run(req *azfunc.HTTPRequest, ctx *azfunc.Context) User {
+func Run(req *azfunc.HTTPRequest, ctx *azfunc.Context) (User, error) {
 	log.SetLevel(log.DebugLevel)
 
 	log.Debugf("function id: %s, invocation id: %s", ctx.FunctionID, ctx.InvocationID)
@@ -18,7 +18,7 @@ func Run(req *azfunc.HTTPRequest, ctx *azfunc.Context) User {
 		GeneratedName: fmt.Sprintf("%s-azfunc", req.Query["name"]),
 	}
 
-	return u
+	return u, nil
 }
 
 // User mocks any struct (or pointer to struct) you might want to return
