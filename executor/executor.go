@@ -73,23 +73,29 @@ func getFuncParams(req *rpc.InvocationRequest, f *azfunc.Func) ([]reflect.Value,
 		}
 	}
 
+	log.Debugf("map: %v", args)
+
 	ctx := &azfunc.Context{
 		FunctionID:   req.FunctionId,
 		InvocationID: req.InvocationId,
 	}
 
-	params := []reflect.Value{}
-	for arg, t := range f.NamedInArgs {
-		p, ok := args[arg]
+	params := make([]reflect.Value, len(f.NamedInArgs))
+	i := 0
+	for k, v := range f.NamedInArgs {
+		p, ok := args[k]
 		if ok {
-			params = append(params, p)
-		} else if t == reflect.TypeOf((*azfunc.Context)(nil)) {
-			params = append(params, reflect.ValueOf(ctx))
+			params[i] = p
+			i++
+		} else if v == reflect.TypeOf((*azfunc.Context)(nil)) {
+			params[i] = reflect.ValueOf(ctx)
+			i++
 		} else {
 			return nil, fmt.Errorf("named argument not found")
 		}
 	}
 
+	log.Debugf("params in func: %v", params)
 	return params, nil
 }
 
