@@ -3,7 +3,6 @@ Azure Functions Golang Worker
 
 This project aims to add Golang support for Azure Functions.
 
-
 How to run the sample
 ---------------------
 
@@ -17,6 +16,18 @@ To build the the worker and sample you need to:
 
 Then, if you go to `localhost:81/api/HttpTriggerGo`, your `Run` method from the sample should be executed.
 
+If you have an Azure storage account and want to run the blob binding sample, then uncomment the following lines from the Dockerfile:
+
+```
+#WORKDIR /go/src/github.com/radu-matei/azure-functions-golang-worker/sample/HttpTriggerBlobBindingGo
+#RUN go build -buildmode=plugin -o bin/HttpTriggerBlobBindingGo.so main.go
+```
+
+> They are commented as when started, the runtime tries to connect to the storage account - if the storage account key is not present, it will fail
+
+Then, you need to pass the storage account key when starting the container:
+
+`docker run -p 81:80 -e AzureWebJobsStorage=DefaultEndpointsProtocol="your-storage-account-key" azure-functions-go-sample`
 
 
 Disclaimer
