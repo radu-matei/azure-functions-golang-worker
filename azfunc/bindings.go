@@ -27,6 +27,7 @@ const (
 var StringToType = map[string]reflect.Type{
 	"*azfunc.HTTPRequest": reflect.TypeOf((*HTTPRequest)(nil)),
 	"*azfunc.Context":     reflect.TypeOf((*Context)(nil)),
+	"*azfunc.BlobInput":   reflect.TypeOf((*BlobInput)(nil)),
 }
 
 // BindingType contains the Azure Functions binding type
@@ -40,4 +41,10 @@ type Func struct {
 	NamedInArgs      map[string]reflect.Type
 	Out              []reflect.Type
 	NamedOutBindings map[string]reflect.Value
+}
+
+// Context contains the runtime context of the function
+type Context struct {
+	FunctionID   string
+	InvocationID string
 }
