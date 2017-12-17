@@ -12,42 +12,35 @@ import (
 	"github.com/radu-matei/azure-functions-golang-worker/util"
 )
 
-// ExecuteFunction takes an InvocationRequest and executes the function with corresponding function ID
-func ExecuteFunction(request *rpc.InvocationRequest) (response *rpc.InvocationResponse) {
-	var output reflect.Value
+// ExecuteFunc takes an InvocationRequest and executes the function with corresponding function ID
+func ExecuteFunc(req *rpc.InvocationRequest) (response *rpc.InvocationResponse) {
 
-	s := len(loader.LoadedFuncs[request.FunctionId].Out)
-	out := make([]reflect.Value, s)
-	for i := 0; i < s; i++ {
-		out[i] = reflect.New(loader.LoadedFuncs[request.FunctionId].Out[i])
+	status := rpc.StatusResult_Success
+
+	f, ok := loader.LoadedFuncs[req.FunctionId]
+	if !ok {
+		log.Debugf("function with functionID %v not loaded", req.FunctionId)
+		status = rpc.StatusResult_Failure
+	}
+	params, err := getFuncParams(req, f)
+	if err != nil {
+		log.Debugf("cannot get params from request: %v", err)
+		status = rpc.StatusResult_Failure
 	}
 
-	switch r := request.TriggerMetadata["req"].Data.(type) {
-	case *rpc.TypedData_Http:
-		h := util.ConvertToHTTPRequest(r.Http)
-		ctx := &azfunc.Context{
-			FunctionID:   request.FunctionId,
-			InvocationID: request.InvocationId,
-		}
+	log.Debugf("params: %v", params)
 
-		out = loader.LoadedFuncs[request.FunctionId].Func.Call([]reflect.Value{reflect.ValueOf(h), reflect.ValueOf(ctx)})
-		output = out[0]
-
-		log.Debugf("http request: %v", h)
-	}
+	output := f.Func.Call(params)[0]
 
 	b, err := json.Marshal(output.Interface())
 	if err != nil {
 		log.Debugf("failed to marshal, %v:", err)
 	}
 
-	log.Debugf("received output: %v", output)
-	log.Debugf("encoded output: %v", string(b))
-
-	invocationResponse := &rpc.InvocationResponse{
-		InvocationId: request.InvocationId,
+	return &rpc.InvocationResponse{
+		InvocationId: req.InvocationId,
 		Result: &rpc.StatusResult{
-			Status: rpc.StatusResult_Success,
+			Status: status,
 		},
 		ReturnValue: &rpc.TypedData{
 			Data: &rpc.TypedData_Json{
@@ -55,22 +48,75 @@ func ExecuteFunction(request *rpc.InvocationRequest) (response *rpc.InvocationRe
 			},
 		},
 	}
-
-	return invocationResponse
 }
 
-// NewExecuteFunc is a new, improved version of ExecuteFunction
-func NewExecuteFunc(req *rpc.InvocationRequest) (response *rpc.InvocationResponse, err error) {
-	f, ok := loader.LoadedFuncs[req.FunctionId]
-	if !ok {
-		return nil, fmt.Errorf("function with functionID %v not loaded", req.FunctionId)
+// get final slice with params to call the function
+func getFuncParams(req *rpc.InvocationRequest, f *azfunc.Func) ([]reflect.Value, error) {
+
+	args := make(map[string]reflect.Value)
+
+	// iterate through the invocation request input data
+	// if the name of the input data is in the function bindings, then attempt to get the typed binding
+	for _, input := range req.InputData {
+		binding, ok := f.Bindings[input.Name]
+		if ok {
+			v, err := getValueFromBinding(input, binding)
+
+			// TODO - investigate returning error from this function
+			if err != nil {
+				log.Debugf("cannot transform typed binding: %v", err)
+				return nil, err
+			}
+			args[input.Name] = v
+		} else {
+			return nil, fmt.Errorf("cannot find input %v in function bindings", input.Name)
+		}
 	}
-	_ = paramsFromReq(req, f)
 
-	return nil, nil
+	ctx := &azfunc.Context{
+		FunctionID:   req.FunctionId,
+		InvocationID: req.InvocationId,
+	}
+
+	params := []reflect.Value{}
+	for arg, t := range f.NamedInArgs {
+		p, ok := args[arg]
+		if ok {
+			params = append(params, p)
+		} else if t == reflect.TypeOf((*azfunc.Context)(nil)) {
+			params = append(params, reflect.ValueOf(ctx))
+		} else {
+			return nil, fmt.Errorf("named argument not found")
+		}
+	}
+
+	return params, nil
 }
 
-func paramsFromReq(req *rpc.InvocationRequest, f *azfunc.Func) map[string]reflect.Value {
+// TODO - add here cases for all bindings supported by Azure Functions
+func getValueFromBinding(input *rpc.ParameterBinding, binding *rpc.BindingInfo) (reflect.Value, error) {
 
-	return nil
+	switch binding.Type {
+	case azfunc.HTTPTriggerType:
+		switch r := input.Data.Data.(type) {
+		case *rpc.TypedData_Http:
+			h, err := util.ConvertToHTTPRequest(r.Http)
+			if err != nil {
+				return reflect.New(nil), err
+			}
+			return reflect.ValueOf(h), nil
+		}
+
+	case azfunc.BlobBindingType:
+		switch d := input.Data.Data.(type) {
+		case *rpc.TypedData_String_:
+			b, err := util.ConvertToBlobInput(d)
+			if err != nil {
+				return reflect.New(nil), err
+			}
+
+			return reflect.ValueOf(b), nil
+		}
+	}
+	return reflect.New(nil), fmt.Errorf("cannot handle binding %v", binding.Type)
 }
