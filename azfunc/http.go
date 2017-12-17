@@ -2,12 +2,6 @@ package azfunc
 
 import "io"
 
-// Context contains the runtime context of the function
-type Context struct {
-	FunctionID   string
-	InvocationID string
-}
-
 // HTTPRequest contains the HTTP request received from the Azure Functions runtime
 type HTTPRequest struct {
 	Method     string
