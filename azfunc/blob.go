@@ -52,3 +52,8 @@ type Sys struct {
 	UtcNow     time.Time `json:"UtcNow"`
 	RandGUID   string    `json:"RandGuid"`
 }
+
+// BlobInput contains the data from a blob as string
+type BlobInput struct {
+	Data string
+}
