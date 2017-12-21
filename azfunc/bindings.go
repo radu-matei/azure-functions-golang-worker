@@ -30,9 +30,6 @@ var StringToType = map[string]reflect.Type{
 	"*azfunc.BlobInput":   reflect.TypeOf((*BlobInput)(nil)),
 }
 
-// BindingType contains the Azure Functions binding type
-type BindingType string
-
 // Func contains a function symbol with in and out param types
 type Func struct {
 	Func             reflect.Value
