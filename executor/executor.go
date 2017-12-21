@@ -15,6 +15,8 @@ import (
 // ExecuteFunc takes an InvocationRequest and executes the function with corresponding function ID
 func ExecuteFunc(req *rpc.InvocationRequest) (response *rpc.InvocationResponse) {
 
+	log.Debugf("\n\n\nInvocation Request: %v", req)
+
 	status := rpc.StatusResult_Success
 
 	f, ok := loader.LoadedFuncs[req.FunctionId]
@@ -22,19 +24,39 @@ func ExecuteFunc(req *rpc.InvocationRequest) (response *rpc.InvocationResponse) 
 		log.Debugf("function with functionID %v not loaded", req.FunctionId)
 		status = rpc.StatusResult_Failure
 	}
-	params, err := getFuncParams(req, f)
+	params, outBindings, err := getFuncParams(req, f)
 	if err != nil {
 		log.Debugf("cannot get params from request: %v", err)
 		status = rpc.StatusResult_Failure
 	}
 
 	log.Debugf("params: %v", params)
+	log.Debugf("out bindings: %v", outBindings)
 
 	output := f.Func.Call(params)[0]
 
 	b, err := json.Marshal(output.Interface())
 	if err != nil {
 		log.Debugf("failed to marshal, %v:", err)
+	}
+
+	outputData := make([]*rpc.ParameterBinding, len(outBindings))
+	i := 0
+	for k, v := range outBindings {
+
+		b, err := json.Marshal(v.Interface())
+		if err != nil {
+			log.Debugf("failed to marshal, %v:", err)
+		}
+
+		outputData[i] = &rpc.ParameterBinding{
+			Name: k,
+			Data: &rpc.TypedData{
+				Data: &rpc.TypedData_Json{
+					Json: string(b),
+				},
+			},
+		}
 	}
 
 	return &rpc.InvocationResponse{
@@ -47,13 +69,15 @@ func ExecuteFunc(req *rpc.InvocationRequest) (response *rpc.InvocationResponse) 
 				Json: string(b),
 			},
 		},
+		OutputData: outputData,
 	}
 }
 
 // get final slice with params to call the function
-func getFuncParams(req *rpc.InvocationRequest, f *azfunc.Func) ([]reflect.Value, error) {
+func getFuncParams(req *rpc.InvocationRequest, f *azfunc.Func) ([]reflect.Value, map[string]reflect.Value, error) {
 
 	args := make(map[string]reflect.Value)
+	outBindings := make(map[string]reflect.Value)
 
 	// iterate through the invocation request input data
 	// if the name of the input data is in the function bindings, then attempt to get the typed binding
@@ -61,17 +85,20 @@ func getFuncParams(req *rpc.InvocationRequest, f *azfunc.Func) ([]reflect.Value,
 		binding, ok := f.Bindings[input.Name]
 		if ok {
 			v, err := getValueFromBinding(input, binding)
-
-			// TODO - investigate returning error from this function
 			if err != nil {
 				log.Debugf("cannot transform typed binding: %v", err)
-				return nil, err
+				return nil, nil, err
 			}
 			args[input.Name] = v
 		} else {
-			return nil, fmt.Errorf("cannot find input %v in function bindings", input.Name)
+			return nil, nil, fmt.Errorf("cannot find input %v in function bindings", input.Name)
 		}
 	}
+
+	args["outBlob"] = reflect.ValueOf(&azfunc.BlobInput{
+		Data: "pfff",
+	})
+	outBindings["outBlob"] = args["outBlob"]
 
 	log.Debugf("map: %v", args)
 
@@ -91,12 +118,13 @@ func getFuncParams(req *rpc.InvocationRequest, f *azfunc.Func) ([]reflect.Value,
 			params[i] = reflect.ValueOf(ctx)
 			i++
 		} else {
-			return nil, fmt.Errorf("named argument not found")
+			continue
+			//return nil, nil, fmt.Errorf("named argument not found")
 		}
 	}
 
 	log.Debugf("params in func: %v", params)
-	return params, nil
+	return params, outBindings, nil
 }
 
 // TODO - add here cases for all bindings supported by Azure Functions
