@@ -1,6 +1,8 @@
 package azfunc
 
-import "io"
+import (
+	"io"
+)
 
 // HTTPRequest contains the HTTP request received from the Azure Functions runtime
 type HTTPRequest struct {

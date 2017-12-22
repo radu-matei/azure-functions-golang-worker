@@ -21,6 +21,9 @@ RUN go build -buildmode=plugin -o bin/HttpTriggerGo.so main.go
 #WORKDIR /go/src/github.com/radu-matei/azure-functions-golang-worker/sample/HttpTriggerBlobBindingGo
 #RUN go build -buildmode=plugin -o bin/HttpTriggerBlobBindingGo.so main.go
 
+#WORKDIR /go/src/github.com/radu-matei/azure-functions-golang-worker/sample/HttpTriggerBlobBindingInOutGo
+#RUN go build -buildmode=plugin -o bin/HttpTriggerBlobBindingInOutGo.so main.go
+
 # this is just the Azure Functions Runtime configured to recognize .go functions and to start the worker
 FROM radumatei/functions-runtime:golang
 

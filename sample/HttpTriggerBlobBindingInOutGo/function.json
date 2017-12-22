@@ -8,10 +8,17 @@
       "name": "req"
     },
     {
-      "name": "myBlob",
+      "name": "inBlob",
       "type": "blob",
       "direction": "in",
-      "path": "demo/{blobname}",
+      "path": "demo/{inblobname}",
+      "connection": "AzureWebJobsStorage"
+    },
+    {
+      "name": "outBlob",
+      "type": "blob",
+      "direction": "out",
+      "path": "demo/{outblobname}",
       "connection": "AzureWebJobsStorage"
     }
   ],

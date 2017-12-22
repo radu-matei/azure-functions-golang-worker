@@ -6,15 +6,17 @@ import (
 )
 
 // Run is the entrypoint to our Go Azure Function - if you want to change it, see function.json
-func Run(req *azfunc.HTTPRequest, myBlob *azfunc.Blob, ctx *azfunc.Context) BlobData {
+func Run(req *azfunc.HTTPRequest, inBlob *azfunc.Blob, outBlob *azfunc.Blob, ctx *azfunc.Context) BlobData {
 	log.SetLevel(log.DebugLevel)
 
 	log.Debugf("function id: %s, invocation id: %s", ctx.FunctionID, ctx.InvocationID)
 
 	d := BlobData{
 		Name: req.Query["name"],
-		Data: myBlob.Data,
+		Data: inBlob.Data,
 	}
+
+	outBlob.Data = "Leeeet's hope this doesn't miserably fail..."
 
 	return d
 }

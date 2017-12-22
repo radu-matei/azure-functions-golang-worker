@@ -53,7 +53,7 @@ type Sys struct {
 	RandGUID   string    `json:"RandGuid"`
 }
 
-// BlobInput contains the data from a blob as string
-type BlobInput struct {
+// Blob contains the data from a blob as string
+type Blob struct {
 	Data string
 }
