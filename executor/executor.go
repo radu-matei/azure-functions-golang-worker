@@ -24,7 +24,7 @@ func ExecuteFunc(req *rpc.InvocationRequest) (response *rpc.InvocationResponse) 
 		log.Debugf("function with functionID %v not loaded", req.FunctionId)
 		status = rpc.StatusResult_Failure
 	}
-	params, outBindings, err := getFuncParams(req, f)
+	params, outBindings, err := getFinalParams(req, f)
 	if err != nil {
 		log.Debugf("cannot get params from request: %v", err)
 		status = rpc.StatusResult_Failure
@@ -73,9 +73,7 @@ func ExecuteFunc(req *rpc.InvocationRequest) (response *rpc.InvocationResponse) 
 	}
 }
 
-// get final slice with params to call the function
-func getFuncParams(req *rpc.InvocationRequest, f *azfunc.Func) ([]reflect.Value, map[string]reflect.Value, error) {
-
+func getFinalParams(req *rpc.InvocationRequest, f *azfunc.Func) ([]reflect.Value, map[string]reflect.Value, error) {
 	args := make(map[string]reflect.Value)
 	outBindings := make(map[string]reflect.Value)
 
@@ -95,35 +93,41 @@ func getFuncParams(req *rpc.InvocationRequest, f *azfunc.Func) ([]reflect.Value,
 		}
 	}
 
-	args["outBlob"] = reflect.ValueOf(&azfunc.BlobInput{
-		Data: "pfff",
-	})
-	outBindings["outBlob"] = args["outBlob"]
-
-	log.Debugf("map: %v", args)
-
 	ctx := &azfunc.Context{
 		FunctionID:   req.FunctionId,
 		InvocationID: req.InvocationId,
 	}
 
+	log.Debugf("named in args: %v", f.NamedInArgs)
+	log.Debugf("args map: %v", args)
+
 	params := make([]reflect.Value, len(f.NamedInArgs))
 	i := 0
-	for k, v := range f.NamedInArgs {
-		p, ok := args[k]
+	for _, v := range f.NamedInArgs {
+		p, ok := args[v.Name]
 		if ok {
 			params[i] = p
 			i++
-		} else if v == reflect.TypeOf((*azfunc.Context)(nil)) {
+		} else if v.Type == reflect.TypeOf((*azfunc.Context)(nil)) {
 			params[i] = reflect.ValueOf(ctx)
 			i++
 		} else {
-			continue
-			//return nil, nil, fmt.Errorf("named argument not found")
+			b, ok := f.Bindings[v.Name]
+			if ok {
+				if b.Direction == rpc.BindingInfo_out {
+					o, err := getOutBinding(b)
+					if err != nil {
+						return nil, nil, fmt.Errorf("cannot get out binding %s: %v", v.Name, err)
+					}
+
+					params[i] = o
+					outBindings[v.Name] = o
+					i++
+				}
+			}
 		}
 	}
 
-	log.Debugf("params in func: %v", params)
 	return params, outBindings, nil
 }
 
@@ -153,4 +157,17 @@ func getValueFromBinding(input *rpc.ParameterBinding, binding *rpc.BindingInfo) 
 		}
 	}
 	return reflect.New(nil), fmt.Errorf("cannot handle binding %v", binding.Type)
+}
+
+func getOutBinding(b *rpc.BindingInfo) (reflect.Value, error) {
+	switch b.Type {
+	case azfunc.BlobBindingType:
+		b := &azfunc.Blob{
+			Data: "",
+		}
+		return reflect.ValueOf(b), nil
+
+	default:
+		return reflect.New(nil), fmt.Errorf("cannot handle binding %v", b.Type)
+	}
 }
