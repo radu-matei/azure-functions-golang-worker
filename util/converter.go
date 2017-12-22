@@ -39,12 +39,12 @@ func ConvertToHTTPRequest(r *rpc.RpcHttp) (*azfunc.HTTPRequest, error) {
 }
 
 // ConvertToBlobInput returns a formatted BlobInput from an rpc.TypedData_String (as blob inputs are for now)
-func ConvertToBlobInput(d *rpc.TypedData_String_) (*azfunc.BlobInput, error) {
+func ConvertToBlobInput(d *rpc.TypedData_String_) (*azfunc.Blob, error) {
 	if d == nil {
 		return nil, fmt.Errorf("cannot convert nil blob input")
 	}
 
-	return &azfunc.BlobInput{
+	return &azfunc.Blob{
 		Data: d.String_,
 	}, nil
 }

@@ -27,7 +27,7 @@ const (
 var StringToType = map[string]reflect.Type{
 	"*azfunc.HTTPRequest": reflect.TypeOf((*HTTPRequest)(nil)),
 	"*azfunc.Context":     reflect.TypeOf((*Context)(nil)),
-	"*azfunc.BlobInput":   reflect.TypeOf((*BlobInput)(nil)),
+	"*azfunc.Blob":        reflect.TypeOf((*Blob)(nil)),
 }
 
 // Func contains a function symbol with in and out param types
@@ -35,7 +35,7 @@ type Func struct {
 	Func             reflect.Value
 	Bindings         map[string]*rpc.BindingInfo
 	In               []reflect.Type
-	NamedInArgs      map[string]reflect.Type
+	NamedInArgs      []*Arg
 	Out              []reflect.Type
 	NamedOutBindings map[string]reflect.Value
 }
@@ -44,4 +44,10 @@ type Func struct {
 type Context struct {
 	FunctionID   string
 	InvocationID string
+}
+
+// Arg represents an initial representation of a func argument
+type Arg struct {
+	Name string
+	Type reflect.Type
 }
