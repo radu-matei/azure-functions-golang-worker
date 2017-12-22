@@ -80,8 +80,8 @@ func loadSO(metadata *rpc.RpcFunctionMetadata) (*azfunc.Func, error) {
 
 // can this be optimized?
 // can this be achieved only by relying on the parameter order?
-func parseEntrypoint(metadata *rpc.RpcFunctionMetadata) (map[string]reflect.Type, error) {
-	m := make(map[string]reflect.Type)
+func parseEntrypoint(metadata *rpc.RpcFunctionMetadata) ([]*azfunc.Arg, error) {
+	var namedInArgs []*azfunc.Arg
 
 	fs := token.NewFileSet()
 	f, err := parser.ParseFile(fs, metadata.ScriptFile, nil, parser.AllErrors)
@@ -112,7 +112,10 @@ func parseEntrypoint(metadata *rpc.RpcFunctionMetadata) (map[string]reflect.Type
 					key := fmt.Sprintf("*%v.%v", p.Type.(*ast.StarExpr).X.(*ast.SelectorExpr).X.(*ast.Ident).Name, p.Type.(*ast.StarExpr).X.(*ast.SelectorExpr).Sel.Name)
 					t, ok := azfunc.StringToType[key]
 					if ok {
-						m[n.Name] = t
+						namedInArgs = append(namedInArgs, &azfunc.Arg{
+							Name: n.Name,
+							Type: t,
+						})
 					} else {
 						log.Debugf("cannot find key %v in type map", key)
 					}
@@ -128,5 +131,5 @@ func parseEntrypoint(metadata *rpc.RpcFunctionMetadata) (map[string]reflect.Type
 		}
 	})
 
-	return m, nil
+	return namedInArgs, nil
 }
