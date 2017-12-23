@@ -1,6 +1,8 @@
 Azure Functions Golang Worker
 =============================
 
+![circle](https://circleci.com/gh/radu-matei/azure-functions-golang-worker.png?style=shield&circle-token=:circle-token)
+
 This project aims to add Golang support for Azure Functions.
 
 How to run the sample
