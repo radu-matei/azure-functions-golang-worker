@@ -12,7 +12,7 @@ rpc:
 
 .PHONY: golang-worker
 golang-worker:
-        GOOS=linux go build -o $(GOLANG_WORKER_BINARY)
+	GOOS=linux go build -o $(GOLANG_WORKER_BINARY)
 
 .PHONY: dep
 dep:
