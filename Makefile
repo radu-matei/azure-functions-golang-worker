@@ -3,7 +3,6 @@ target = go
 protoc_location = rpc/
 proto_out_dir = rpc/
 
-OUTPUT_DIR = sample
 GOLANG_WORKER_BINARY = golang-worker
 SUBDIRS := $(wildcard sample/*)
 
@@ -13,7 +12,7 @@ rpc:
 
 .PHONY: golang-worker
 golang-worker:
-        GOOS=linux go build -o $(OUTPUT_DIR)/$(GOLANG_WORKER_BINARY)
+        GOOS=linux go build -o $(GOLANG_WORKER_BINARY)
 
 .PHONY: dep
 dep:
