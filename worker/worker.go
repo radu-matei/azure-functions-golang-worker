@@ -85,7 +85,7 @@ func handleInvocationRequest(requestID string,
 	eventStream rpc.FunctionRpc_EventStreamClient) {
 
 	//log.Debugf("received invocation request: %v", message.InvocationRequest)
-	response := executor.ExecuteFunc(message.InvocationRequest)
+	response := executor.ExecuteFunc(message.InvocationRequest, eventStream)
 
 	invocationResponse := &rpc.StreamingMessage{
 		RequestId: requestID,
