@@ -3,6 +3,7 @@ package azfunc
 import (
 	"reflect"
 
+	"github.com/radu-matei/azure-functions-golang-worker/logger"
 	"github.com/radu-matei/azure-functions-golang-worker/rpc"
 )
 
@@ -44,6 +45,7 @@ type Func struct {
 type Context struct {
 	FunctionID   string
 	InvocationID string
+	Logger       *logger.Logger
 }
 
 // Arg represents an initial representation of a func argument

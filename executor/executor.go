@@ -8,12 +8,13 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/radu-matei/azure-functions-golang-worker/azfunc"
 	"github.com/radu-matei/azure-functions-golang-worker/loader"
+	"github.com/radu-matei/azure-functions-golang-worker/logger"
 	"github.com/radu-matei/azure-functions-golang-worker/rpc"
 	"github.com/radu-matei/azure-functions-golang-worker/util"
 )
 
 // ExecuteFunc takes an InvocationRequest and executes the function with corresponding function ID
-func ExecuteFunc(req *rpc.InvocationRequest) (response *rpc.InvocationResponse) {
+func ExecuteFunc(req *rpc.InvocationRequest, eventStream rpc.FunctionRpc_EventStreamClient) (response *rpc.InvocationResponse) {
 
 	log.Debugf("\n\n\nInvocation Request: %v", req)
 
@@ -24,7 +25,7 @@ func ExecuteFunc(req *rpc.InvocationRequest) (response *rpc.InvocationResponse) 
 		log.Debugf("function with functionID %v not loaded", req.FunctionId)
 		status = rpc.StatusResult_Failure
 	}
-	params, outBindings, err := getFinalParams(req, f)
+	params, outBindings, err := getFinalParams(req, f, eventStream)
 	if err != nil {
 		log.Debugf("cannot get params from request: %v", err)
 		status = rpc.StatusResult_Failure
@@ -73,7 +74,7 @@ func ExecuteFunc(req *rpc.InvocationRequest) (response *rpc.InvocationResponse) 
 	}
 }
 
-func getFinalParams(req *rpc.InvocationRequest, f *azfunc.Func) ([]reflect.Value, map[string]reflect.Value, error) {
+func getFinalParams(req *rpc.InvocationRequest, f *azfunc.Func, eventStream rpc.FunctionRpc_EventStreamClient) ([]reflect.Value, map[string]reflect.Value, error) {
 	args := make(map[string]reflect.Value)
 	outBindings := make(map[string]reflect.Value)
 
@@ -96,9 +97,9 @@ func getFinalParams(req *rpc.InvocationRequest, f *azfunc.Func) ([]reflect.Value
 	ctx := &azfunc.Context{
 		FunctionID:   req.FunctionId,
 		InvocationID: req.InvocationId,
+		Logger:       logger.NewLogger(eventStream, req.InvocationId),
 	}
 
-	log.Debugf("named in args: %v", f.NamedInArgs)
 	log.Debugf("args map: %v", args)
 
 	params := make([]reflect.Value, len(f.NamedInArgs))
