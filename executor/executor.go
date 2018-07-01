@@ -156,6 +156,17 @@ func getValueFromBinding(input *rpc.ParameterBinding, binding *rpc.BindingInfo) 
 
 			return reflect.ValueOf(b), nil
 		}
+
+	case azfunc.BlobTriggerType:
+		switch d := input.Data.Data.(type) {
+		case *rpc.TypedData_String_:
+			b, err := util.ConvertToBlobInput(d)
+			if err != nil {
+				return reflect.New(nil), err
+			}
+
+			return reflect.ValueOf(b), nil
+		}
 	}
 	return reflect.New(nil), fmt.Errorf("cannot handle binding %v", binding.Type)
 }

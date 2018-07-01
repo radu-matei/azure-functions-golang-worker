@@ -1,0 +1,19 @@
+{
+    "entryPoint": "Run",
+    "bindings": [
+      {
+        "authLevel": "anonymous",
+        "type": "httpTrigger",
+        "direction": "in",
+        "name": "req"
+      },
+      {
+        "name": "outBlob",
+        "type": "blob",
+        "direction": "out",
+        "path": "demo/{outblobname}",
+        "connection": "AzureWebJobsStorage"
+      }
+    ],
+    "disabled": false
+  }

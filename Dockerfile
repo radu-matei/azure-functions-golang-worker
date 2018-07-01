@@ -5,8 +5,8 @@ WORKDIR /go/src/github.com/radu-matei/azure-functions-golang-worker
 COPY . .
 
 
-RUN go get -u github.com/golang/dep/...
-RUN dep ensure
+#RUN go get -u github.com/golang/dep/...
+#RUN dep ensure
 
 RUN go build -o golang-worker
 
@@ -14,6 +14,8 @@ RUN go build -o golang-worker
 WORKDIR /go/src/github.com/radu-matei/azure-functions-golang-worker/sample/HttpTriggerGo
 RUN go build -buildmode=plugin -o bin/HttpTriggerGo.so main.go
 
+WORKDIR /go/src/github.com/radu-matei/azure-functions-golang-worker/sample/Fibonacci
+RUN go build -buildmode=plugin -o bin/Fibonacci.so main.go
 
 # to use a blob-based function you need an Azure storage account and to pass the storage key as env to the container - see readme
 # if you have a storage, uncomment the next two steps
@@ -24,6 +26,9 @@ RUN go build -buildmode=plugin -o bin/HttpTriggerGo.so main.go
 #WORKDIR /go/src/github.com/radu-matei/azure-functions-golang-worker/sample/HttpTriggerBlobBindingInOutGo
 #RUN go build -buildmode=plugin -o bin/HttpTriggerBlobBindingInOutGo.so main.go
 
+#WORKDIR /go/src/github.com/radu-matei/azure-functions-golang-worker/sample/RequestInfo
+#RUN go build -buildmode=plugin -o bin/RequestInfo.so main.go
+
 # this is just the Azure Functions Runtime configured to recognize .go functions and to start the worker
 FROM radumatei/functions-runtime:golang
 
@@ -31,7 +36,7 @@ FROM radumatei/functions-runtime:golang
 COPY --from=builder /go/src/github.com/radu-matei/azure-functions-golang-worker/golang-worker /azure-functions-runtime/workers/go/
 
 # copy all samples
-COPY --from=builder /go/src/github.com/radu-matei/azure-functions-golang-worker/sample/ /home/site/wwwroot
+COPY --from=builder /go/src/github.com/radu-matei/azure-functions-golang-worker/sample/Fibonacci /home/site/wwwroot/Fibonacci
 
 ENV AzureWebJobsScriptRoot=/home/site/wwwroot
 ENV ASPNETCORE_URLS=http://+:80

@@ -1,0 +1,16 @@
+#start from golang 1.10-rc (as multiple plugins with same package name fails in golang-1.9.x)
+FROM golang:1.10-rc as builder
+
+WORKDIR /go/src/github.com/radu-matei/azure-functions-golang-worker
+COPY . .
+
+RUN go build -o golang-worker
+
+# this is just the Azure Functions Runtime configured to recognize .go functions and to start the worker
+FROM radumatei/functions-runtime:golang
+
+# copy the worker in the pre-defined path
+COPY --from=builder /go/src/github.com/radu-matei/azure-functions-golang-worker/golang-worker /azure-functions-runtime/workers/go/
+
+ENV AzureWebJobsScriptRoot=/home/site/wwwroot
+ENV ASPNETCORE_URLS=http://+:80

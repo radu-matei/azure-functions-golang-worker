@@ -1,3 +1,4 @@
 vendor/
 bin/
 *.so
+.DS_Store
