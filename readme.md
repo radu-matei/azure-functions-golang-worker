@@ -1,7 +1,10 @@
 Azure Functions Golang Worker
 =============================
 
+[![godoc](https://godoc.org/github.com/radu-matei/azure-functions-golang-worker?status.svg)](https://godoc.org/github.com/radu-matei/azure-functions-golang-worker)
 ![circle](https://circleci.com/gh/radu-matei/azure-functions-golang-worker.png?style=shield&circle-token=:circle-token)
+[![Go Report Card](https://goreportcard.com/badge/github.com/radu-matei/azure-functions-golang-worker)](https://goreportcard.com/report/github.com/radu-matei/azure-functions-golang-worker)
+
 
 This project aims to add Golang support for Azure Functions.
 
