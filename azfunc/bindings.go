@@ -1,6 +1,7 @@
 package azfunc
 
 import (
+	"net/http"
 	"reflect"
 
 	"github.com/radu-matei/azure-functions-golang-worker/logger"
@@ -26,9 +27,9 @@ const (
 // StringToType - Because we don't have go/types information, we need to map the type info from the AST (which is string) to the actual types - see loader.go:83
 // investiage automatically adding here all types from package azfunc
 var StringToType = map[string]reflect.Type{
-	"*azfunc.HTTPRequest": reflect.TypeOf((*HTTPRequest)(nil)),
-	"*azfunc.Context":     reflect.TypeOf((*Context)(nil)),
-	"*azfunc.Blob":        reflect.TypeOf((*Blob)(nil)),
+	"*http.Request":   reflect.TypeOf((*http.Request)(nil)),
+	"*azfunc.Context": reflect.TypeOf((*Context)(nil)),
+	"*azfunc.Blob":    reflect.TypeOf((*Blob)(nil)),
 }
 
 // Func contains a function symbol with in and out param types

@@ -2,17 +2,23 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/radu-matei/azure-functions-golang-worker/azfunc"
 )
 
 // Run is the entrypoint to our Go Azure Function - if you want to change it, see function.json
-func Run(req *azfunc.HTTPRequest, ctx *azfunc.Context) User {
+func Run(ctx *azfunc.Context, req *http.Request) User {
 	ctx.Logger.Log("Log message from function %v, invocation %v to the runtime", ctx.FunctionID, ctx.InvocationID)
 
+	name := req.URL.Query().Get("name")
+	if name == "" {
+		name = "anonymous"
+	}
+
 	u := User{
-		Name:          req.Query["name"],
-		GeneratedName: fmt.Sprintf("%s-azfunc", req.Query["name"]),
+		Name:          name,
+		GeneratedName: fmt.Sprintf("%s-azfunc", name),
 	}
 
 	return u

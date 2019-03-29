@@ -82,18 +82,19 @@ Now let's see the Golang function:
 package main
 
 import (
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/radu-matei/azure-functions-golang-worker/azfunc"
 )
 
 // Run is the entrypoint to our Go Azure Function - if you want to change it, see function.json
-func Run(req *azfunc.HTTPRequest, inBlob *azfunc.Blob, outBlob *azfunc.Blob, ctx *azfunc.Context) BlobData {
+func Run(ctx *azfunc.Context, req *http.Request, inBlob *azfunc.Blob, outBlob *azfunc.Blob) BlobData {
 	log.SetLevel(log.DebugLevel)
 
 	log.Debugf("function id: %s, invocation id: %s", ctx.FunctionID, ctx.InvocationID)
 
 	d := BlobData{
-		Name: req.Query["name"],
+		Name: req.URL.Query().Get("name"),
 		Data: inBlob.Data,
 	}
 
@@ -114,7 +115,7 @@ Things to notice:
 
 - we can use any vendored dependencies we might have available at compile time (everything is packaged as a Golang plugin)
 - the name of the function is `Run` - can be changed, just remember to do the same in `function.json`
-- the function signature - `func Run(req *azfunc.HTTPRequest, inBlob *azfunc.Blob, outBlob *azfunc.Blob, ctx *azfunc.Context) BlobData` - based on the `function.json`, `req`, `inBlob`, `outBlob` and `ctx` are automatically populated by the worker
+- the function signature - `func Run(ctx *azfunc.Context, req *http.Request, inBlob *azfunc.Blob, outBlob *azfunc.Blob) BlobData` - based on the `function.json`, `req`, `inBlob`, `outBlob` and `ctx` are automatically populated by the worker
 
 > **The content of the parameters is populated based on the name of the parameter! You can change the order, but the name has to be consistent with the name of the binding defined in `function.json`!**
 

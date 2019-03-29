@@ -1,0 +1,18 @@
+{
+    "entryPoint": "Run",
+    "scriptFile": "main.go",
+    "bindings": [
+        {
+            "authLevel": "anonymous",
+            "type": "httpTrigger",
+            "direction": "in",
+            "name": "req"
+        },
+        {
+            "name": "resp",
+            "type": "http",
+            "direction": "out"
+        }
+    ],
+    "disabled": false
+}
