@@ -1,7 +1,8 @@
 package worker
 
 import (
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/radu-matei/azure-functions-golang-worker/executor"
 	"github.com/radu-matei/azure-functions-golang-worker/loader"
 	"github.com/radu-matei/azure-functions-golang-worker/rpc"

@@ -3,9 +3,14 @@ package executor
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"reflect"
+	"strconv"
+	"strings"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/radu-matei/azure-functions-golang-worker/azfunc"
 	"github.com/radu-matei/azure-functions-golang-worker/loader"
 	"github.com/radu-matei/azure-functions-golang-worker/logger"
@@ -18,17 +23,22 @@ func ExecuteFunc(req *rpc.InvocationRequest, eventStream rpc.FunctionRpc_EventSt
 
 	log.Debugf("\n\n\nInvocation Request: %v", req)
 
-	status := rpc.StatusResult_Success
+	response = &rpc.InvocationResponse{
+		InvocationId: req.InvocationId,
+		Result: &rpc.StatusResult{
+			Status: rpc.StatusResult_Failure,
+		},
+	}
 
 	f, ok := loader.LoadedFuncs[req.FunctionId]
 	if !ok {
 		log.Debugf("function with functionID %v not loaded", req.FunctionId)
-		status = rpc.StatusResult_Failure
+		return
 	}
 	params, outBindings, err := getFinalParams(req, f, eventStream)
 	if err != nil {
 		log.Debugf("cannot get params from request: %v", err)
-		status = rpc.StatusResult_Failure
+		return
 	}
 
 	log.Debugf("params: %v", params)
@@ -36,18 +46,50 @@ func ExecuteFunc(req *rpc.InvocationRequest, eventStream rpc.FunctionRpc_EventSt
 
 	output := f.Func.Call(params)[0]
 
-	b, err := json.Marshal(output.Interface())
-	if err != nil {
-		log.Debugf("failed to marshal, %v:", err)
+	switch v := output.Interface().(type) {
+	case *http.Response:
+		resp, err := encodeResponse(v)
+		if err != nil {
+			log.Debugf("cannot encode response: %v", err)
+			return
+		}
+		response.ReturnValue = &rpc.TypedData{
+			Data: &rpc.TypedData_Http{
+				Http: resp,
+			},
+		}
+		response.OutputData = []*rpc.ParameterBinding{
+			{
+				Name: "handler",
+				Data: &rpc.TypedData{
+					Data: &rpc.TypedData_Http{
+						Http: resp,
+					},
+				},
+			},
+		}
+		response.Result.Status = rpc.StatusResult_Success
+		return
+	default:
+		b, err := json.Marshal(output.Interface())
+		if err != nil {
+			log.Debugf("failed to marshal, %v:", err)
+			return
+		}
+		response.ReturnValue = &rpc.TypedData{
+			Data: &rpc.TypedData_Json{
+				Json: string(b),
+			},
+		}
 	}
 
 	outputData := make([]*rpc.ParameterBinding, len(outBindings))
 	i := 0
 	for k, v := range outBindings {
-
 		b, err := json.Marshal(v.Interface())
 		if err != nil {
 			log.Debugf("failed to marshal, %v:", err)
+			return
 		}
 
 		outputData[i] = &rpc.ParameterBinding{
@@ -59,19 +101,9 @@ func ExecuteFunc(req *rpc.InvocationRequest, eventStream rpc.FunctionRpc_EventSt
 			},
 		}
 	}
-
-	return &rpc.InvocationResponse{
-		InvocationId: req.InvocationId,
-		Result: &rpc.StatusResult{
-			Status: status,
-		},
-		ReturnValue: &rpc.TypedData{
-			Data: &rpc.TypedData_Json{
-				Json: string(b),
-			},
-		},
-		OutputData: outputData,
-	}
+	response.OutputData = outputData
+	response.Result.Status = rpc.StatusResult_Success
+	return
 }
 
 func getFinalParams(req *rpc.InvocationRequest, f *azfunc.Func, eventStream rpc.FunctionRpc_EventStreamClient) ([]reflect.Value, map[string]reflect.Value, error) {
@@ -167,8 +199,36 @@ func getOutBinding(b *rpc.BindingInfo) (reflect.Value, error) {
 			Data: "",
 		}
 		return reflect.ValueOf(b), nil
-
+	case azfunc.HTTPBindingType:
+		return reflect.ValueOf(&http.Response{}), nil
 	default:
 		return reflect.New(nil), fmt.Errorf("cannot handle binding %v", b.Type)
 	}
+}
+
+// encodeResponse returns a protobuf Http type from a *http.Response
+func encodeResponse(r *http.Response) (*rpc.RpcHttp, error) {
+	resp := &rpc.RpcHttp{}
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	resp.Body = &rpc.TypedData{
+		Data: &rpc.TypedData_String_{
+			String_: string(body),
+		},
+	}
+	// For now return body as a string also
+	resp.Body = &rpc.TypedData{
+		Data: &rpc.TypedData_String_{
+			String_: string(body),
+		},
+	}
+	resp.Headers = make(map[string]string, len(r.Header))
+	for key, value := range r.Header {
+		resp.Headers[key] = strings.Join(value, ",")
+	}
+	resp.StatusCode = strconv.Itoa(r.StatusCode)
+	return resp, nil
 }

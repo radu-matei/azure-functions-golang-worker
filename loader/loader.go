@@ -8,7 +8,8 @@ import (
 	"plugin"
 	"reflect"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/radu-matei/azure-functions-golang-worker/azfunc"
 	"github.com/radu-matei/azure-functions-golang-worker/rpc"
 )

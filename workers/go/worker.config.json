@@ -1,0 +1,8 @@
+{
+    "description": {
+        "language": "go",
+        "extensions": [".go"],
+        "defaultExecutablePath": "bash",
+        "defaultWorkerPath": "start.sh"
+    }
+}
